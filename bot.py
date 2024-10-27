@@ -64,54 +64,126 @@ class CatsDogs:
             self.log(f"{Fore.RED + Style.BRIGHT}Error: Failed to parse JSON data.{Style.RESET_ALL}")
             return []
     
-    def user_info(self, query: str):
+    def user_info(self, query: str, retries=3):
         url = 'https://api.catsdogs.live/user/info'
         self.headers.update({
             'Content-Type': 'application/json',
             'X-Telegram-Web-App-Data': query
         })
 
-        response = self.session.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, headers=self.headers)
+                response.raise_for_status()
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
     
-    def balance(self, query: str):
+    def balance(self, query: str, retries=3):
         url = 'https://api.catsdogs.live/user/balance'
         self.headers.update({
             'Content-Type': 'application/json',
             'X-Telegram-Web-App-Data': query
         })
 
-        response = self.session.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, headers=self.headers)
+                response.raise_for_status()
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
     
-    def claim_game(self, query: str):
+    def claim_game(self, query: str, retries=3):
         url = 'https://api.catsdogs.live/game/claim'
         self.headers.update({
             'Content-Type': 'application/json',
             'X-Telegram-Web-App-Data': query
         })
 
-        response = self.session.post(url, headers=self.headers)
-        result = response.json()
-        if response.status_code == 200:
-            return result
-        else:
-            return None
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers)
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
         
-    def tasks(self, query: str):
+    def tasks(self, query: str, retries=3):
         url = 'https://api.catsdogs.live/tasks/list'
         self.headers.update({
             'Content-Type': 'application/json',
             'X-Telegram-Web-App-Data': query
         })
 
-        response = self.session.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, headers=self.headers)
+                response.raise_for_status()
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
     
-    def complete_basic_tasks(self, query: str, task_id: int):
+    def complete_basic_tasks(self, query: str, task_id: int, retries=3):
         url = 'https://api.catsdogs.live/tasks/claim'
         data = json.dumps({'task_id': task_id})
         self.headers.update({
@@ -119,17 +191,29 @@ class CatsDogs:
             'X-Telegram-Web-App-Data': query
         })
 
-        response = self.session.post(url, headers=self.headers, data=data)
-        if response.status_code == 200:
-            result = response.json()
-            if result:
-                return result
-            else:
-                return None
-        else:
-            return None
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
         
-    def complete_video_tasks(self, query: str, video_id: int, code: str):
+    def complete_video_tasks(self, query: str, video_id: int, code: str, retries=3):
         url = 'https://api.catsdogs.live/tasks/claim'
         data = json.dumps({'task_id': video_id, 'verification_code':code})
         self.headers.update({
@@ -137,15 +221,27 @@ class CatsDogs:
             'X-Telegram-Web-App-Data': query
         })
 
-        response = self.session.post(url, headers=self.headers, data=data)
-        if response.status_code == 200:
-            result = response.json()
-            if result['status'] == 'success':
-                return result
-            else:
-                return None
-        else:
-            return None
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
     
     def process_query(self, query: str):
 
@@ -186,8 +282,6 @@ class CatsDogs:
 
         tasks = self.tasks(query)
         if tasks:
-            processed_videos = set()
-
             for task in tasks:
                 task_id = task['id']
                 title = task['title']
@@ -196,33 +290,20 @@ class CatsDogs:
 
                 if not task['hidden'] and task['transaction_id'] is None:
 
-                    if task_type == 'video_code':
-                        tasks_video = self.load_task_list()
+                    if task_type == "video_code":
+                        video_tasks = self.load_task_list()
+                        for list in video_tasks:
+                            code = list['code']
 
-                        for video in tasks_video:
-                            video_id = video['id']
-                            code = video['code']
-
-                            if video_id in processed_videos:
-                                continue
-
-                            complete_video = self.complete_video_tasks(query, video_id, code)
+                            complete_video = self.complete_video_tasks(query, task_id, code)
                             if complete_video:
                                 self.log(
                                     f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                    f"{Fore.WHITE + Style.BRIGHT} {video['title']} {Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {list['title']} {Style.RESET_ALL}"
                                     f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
                                     f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                                )
-                                processed_videos.add(video_id)
-                            else:
-                                self.log(
-                                    f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                    f"{Fore.WHITE + Style.BRIGHT} {video['title']} {Style.RESET_ALL}"
-                                    f"{Fore.RED + Style.BRIGHT}Isn't Completed{Style.RESET_ALL}"
-                                    f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
                                 )
                             time.sleep(1)
 
