@@ -242,6 +242,96 @@ class CatsDogs:
                     time.sleep(2)
                 else:
                     return None
+                
+    def sub_tasks(self, query: str, task_id: int, retries=3):
+        url = f'https://api.catsdogs.live/tasks/{task_id}/subtasks'
+        self.headers.update({
+            'Content-Type': 'application/json',
+            'X-Telegram-Web-App-Data': query
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, headers=self.headers)
+                response.raise_for_status()
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
+        
+    def complete_sub_tasks(self, query: str, subtask_id: int, retries=3):
+        url = 'https://api.catsdogs.live/tasks/subtasks/claim'
+        data = json.dumps({'subtask_id': subtask_id})
+        self.headers.update({
+            'Content-Type': 'application/json',
+            'X-Telegram-Web-App-Data': query
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
+                
+    def claim_sub_tasks(self, query: str, task_id: int, retries=3):
+        url = 'https://api.catsdogs.live/tasks/claim'
+        data = json.dumps({'task_id': task_id})
+        self.headers.update({
+            'Content-Type': 'application/json',
+            'X-Telegram-Web-App-Data': query
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    return None
+            except (requests.RequestException, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
     
     def process_query(self, query: str):
 
@@ -306,6 +396,53 @@ class CatsDogs:
                                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                                 )
                             time.sleep(1)
+
+                    elif task_type == "folder":
+                        sub_tasks = self.sub_tasks(query, str(task_id))
+                        if sub_tasks:
+                            for sub_task in sub_tasks:
+                                subtask_id = sub_task['id']
+
+                                if sub_task and not sub_task['is_completed']:
+                                    complete_subtask = self.complete_sub_tasks(query, subtask_id)
+                                    if complete_subtask:
+                                        self.log(
+                                            f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                            f"{Fore.WHITE + Style.BRIGHT} {sub_task['title']} {Style.RESET_ALL}"
+                                            f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                            f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                        )
+                                    else:
+                                        self.log(
+                                            f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                            f"{Fore.WHITE + Style.BRIGHT} {sub_task['title']} {Style.RESET_ALL}"
+                                            f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
+                                            f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                        )
+                                    time.sleep(1)
+    
+                        else:
+                            self.log(f"{Fore.RED + Style.BRIGHT}[ Error Fetching Sub Tasks Info ]{Style.RESET_ALL}")
+                        time.sleep(1)
+
+                        claim_subtask = self.claim_sub_tasks(query, task_id)
+                        if claim_subtask:
+                            self.log(
+                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
+                                f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                            )
+                        else:
+                            self.log(
+                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                            )
+                        time.sleep(1)
 
                     else:
                         complete_basic = self.complete_basic_tasks(query, task_id)
