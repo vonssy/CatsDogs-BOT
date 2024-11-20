@@ -12,16 +12,16 @@ class CatsDogs:
     def __init__(self) -> None:
         self.session = requests.Session()
         self.headers = {
-            'Accept': 'application/json, text/plain, */*',
+            'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
             'Cache-Control': 'no-cache',
             'Host': 'api.catsdogs.live',
-            'Origin': 'https://catsdogs.live',
+            'Origin': 'https://foodz.live',
             'Pragma': 'no-cache',
-            'Referer': 'https://catsdogs.live/',
+            'Referer': 'https://foodz.live/',
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-site',
+            'Sec-Fetch-Site': 'cross-site',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0'
         }
 
@@ -336,136 +336,153 @@ class CatsDogs:
     def process_query(self, query: str):
 
         user = self.user_info(query)
+        if not user:
+            self.log(
+                f"{Fore.MAGENTA+Style.BRIGHT}[ Account{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Query Id May Expired {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+            )
+            return
+        
         if user:
             balance = self.balance(query)
-            if balance:
-                total_balance = sum(balance.values())
+            total_balance = sum(balance.values())
+            self.log(
+                f"{Fore.MAGENTA+Style.BRIGHT}[ Account{Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT} {user['username']} {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT} {total_balance} $FOOD {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+            )
+            time.sleep(1)
+
+            claim = self.claim_game(query)
+            if claim:
                 self.log(
-                    f"{Fore.MAGENTA+Style.BRIGHT}[ Account{Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT} {user['username']} {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA+Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT} {total_balance} $FOOD {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}[ Game{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {claim['claimed_amount']} $FOOD {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                 )
             else:
-                self.log(f"{Fore.RED+Style.BRIGHT}[ Error Fetching User Info ]{Style.RESET_ALL}")
-        else:
-            self.log(f"{Fore.RED+Style.BRIGHT}[ Error Fetching User Info ]{Style.RESET_ALL}")
-        time.sleep(1)
+                self.log(
+                    f"{Fore.MAGENTA+Style.BRIGHT}[ Game{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                )
+            time.sleep(1)
 
-        claim = self.claim_game(query)
-        if claim:
-            self.log(
-                f"{Fore.MAGENTA+Style.BRIGHT}[ Game{Style.RESET_ALL}"
-                f"{Fore.GREEN+Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {claim['claimed_amount']} $FOOD {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
-            )
-        else:
-            self.log(
-                f"{Fore.MAGENTA+Style.BRIGHT}[ Game{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
-            )
-        time.sleep(1)
+            tasks = self.tasks(query)
+            if tasks:
+                completed = False
+                for task in tasks:
+                    task_id = task['id']
+                    title = task['title']
+                    reward = task['amount']
+                    task_type = task['type']
 
-        tasks = self.tasks(query)
-        if tasks:
-            for task in tasks:
-                task_id = task['id']
-                title = task['title']
-                reward = task['amount']
-                task_type = task['type']
+                    if not task['hidden'] and task['transaction_id'] is None:
 
-                if not task['hidden'] and task['transaction_id'] is None:
+                        if task_type == "video_code":
+                            video_tasks = self.load_task_list()
+                            for list in video_tasks:
+                                code = list['code']
 
-                    if task_type == "video_code":
-                        video_tasks = self.load_task_list()
-                        for list in video_tasks:
-                            code = list['code']
+                                complete_video = self.complete_video_tasks(query, task_id, code)
+                                if complete_video:
+                                    self.log(
+                                        f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                        f"{Fore.WHITE + Style.BRIGHT} {list['title']} {Style.RESET_ALL}"
+                                        f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
+                                        f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                                    )
+                                time.sleep(1)
 
-                            complete_video = self.complete_video_tasks(query, task_id, code)
-                            if complete_video:
+                        elif task_type == "folder":
+                            sub_tasks = self.sub_tasks(query, str(task_id))
+                            if sub_tasks:
+                                for sub_task in sub_tasks:
+                                    subtask_id = sub_task['id']
+
+                                    if sub_task and not sub_task['is_completed']:
+                                        complete_subtask = self.complete_sub_tasks(query, subtask_id)
+                                        if complete_subtask:
+                                            self.log(
+                                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                                f"{Fore.WHITE + Style.BRIGHT} {sub_task['title']} {Style.RESET_ALL}"
+                                                f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                            )
+                                        else:
+                                            self.log(
+                                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                                f"{Fore.WHITE + Style.BRIGHT} {sub_task['title']} {Style.RESET_ALL}"
+                                                f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
+                                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                            )
+                                        time.sleep(1)
+        
+                            else:
+                                self.log(f"{Fore.RED + Style.BRIGHT}[ Error Fetching Sub Tasks Info ]{Style.RESET_ALL}")
+                            time.sleep(1)
+
+                            claim_subtask = self.claim_sub_tasks(query, task_id)
+                            if claim_subtask:
                                 self.log(
                                     f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                    f"{Fore.WHITE + Style.BRIGHT} {list['title']} {Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
                                     f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
                                     f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                                 )
+                            else:
+                                self.log(
+                                    f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                    f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                )
                             time.sleep(1)
 
-                    elif task_type == "folder":
-                        sub_tasks = self.sub_tasks(query, str(task_id))
-                        if sub_tasks:
-                            for sub_task in sub_tasks:
-                                subtask_id = sub_task['id']
-
-                                if sub_task and not sub_task['is_completed']:
-                                    complete_subtask = self.complete_sub_tasks(query, subtask_id)
-                                    if complete_subtask:
-                                        self.log(
-                                            f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                            f"{Fore.WHITE + Style.BRIGHT} {sub_task['title']} {Style.RESET_ALL}"
-                                            f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
-                                            f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
-                                        )
-                                    else:
-                                        self.log(
-                                            f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                            f"{Fore.WHITE + Style.BRIGHT} {sub_task['title']} {Style.RESET_ALL}"
-                                            f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
-                                            f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
-                                        )
-                                    time.sleep(1)
-    
                         else:
-                            self.log(f"{Fore.RED + Style.BRIGHT}[ Error Fetching Sub Tasks Info ]{Style.RESET_ALL}")
-                        time.sleep(1)
-
-                        claim_subtask = self.claim_sub_tasks(query, task_id)
-                        if claim_subtask:
-                            self.log(
-                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
-                                f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
-                                f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
-                                f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
-                                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                            )
-                        else:
-                            self.log(
-                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
-                                f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
-                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
-                            )
-                        time.sleep(1)
-
+                            complete_basic = self.complete_basic_tasks(query, task_id)
+                            if complete_basic:
+                                self.log(
+                                    f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                    f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                                )
+                            else:
+                                self.log(
+                                    f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                    f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                )
+                            time.sleep(1)
                     else:
-                        complete_basic = self.complete_basic_tasks(query, task_id)
-                        if complete_basic:
-                            self.log(
-                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
-                                f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
-                                f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
-                                f"{Fore.WHITE + Style.BRIGHT} {reward} $FOOD {Style.RESET_ALL}"
-                                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                            )
-                        else:
-                            self.log(
-                                f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
-                                f"{Fore.WHITE + Style.BRIGHT} {title} {Style.RESET_ALL}"
-                                f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
-                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
-                            )
-                        time.sleep(1)
-        else:
-            self.log(f"{Fore.RED + Style.BRIGHT}[ Error Fetching Tasks Info ]{Style.RESET_ALL}")
-        
+                        completed = True
+
+                if completed:
+                    self.log(
+                        f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                        f"{Fore.GREEN + Style.BRIGHT} Is Completed {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
+            else:
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}[ Task{Style.RESET_ALL}"
+                    f"{Fore.RED + Style.BRIGHT} Data Is None {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                )
+
     def main(self):
         try:
             with open('query.txt', 'r') as file:
@@ -478,14 +495,14 @@ class CatsDogs:
                     f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{len(queries)}{Style.RESET_ALL}"
                 )
-                self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
+                self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
 
                 for query in queries:
                     query = query.strip()
                     if query:
                         self.process_query(query)
+                        self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
                         time.sleep(3)
-                        self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
 
                 seconds = 1800
                 while seconds > 0:
