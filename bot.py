@@ -160,10 +160,68 @@ class CatsDogs:
                     time.sleep(2)
                 else:
                     return None
-    
+                
     def claim_tasks(self, query: str, task_id: int, retries=3):
         url = 'https://api.catsdogs.live/tasks/claim'
         data = json.dumps({'task_id':task_id})
+        self.headers.update({
+            'Content-Type': 'application/json',
+            'X-Telegram-Web-App-Data': query
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data, timeout=10)
+                if response.status_code == 403:
+                    return None
+                
+                response.raise_for_status()
+                return response.json()
+            except (requests.RequestException, requests.Timeout, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
+                
+    def sub_tasks(self, query: str, task_id: int, retries=3):
+        url = f'https://api.catsdogs.live/tasks/{task_id}/subtasks'
+        self.headers.update({
+            'Content-Type': 'application/json',
+            'X-Telegram-Web-App-Data': query
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, headers=self.headers, timeout=10)
+                response.raise_for_status()
+                return response.json()
+            except (requests.RequestException, requests.Timeout, ValueError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt+1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(2)
+                else:
+                    return None
+    
+    def claim_subtasks(self, query: str, subtask_id: int, retries=3):
+        url = 'https://api.catsdogs.live/tasks/subtasks/claim'
+        data = json.dumps({'subtask_id':subtask_id})
         self.headers.update({
             'Content-Type': 'application/json',
             'X-Telegram-Web-App-Data': query
@@ -236,8 +294,48 @@ class CatsDogs:
                 completed = False
                 for task in tasks:
                     task_id = task['id']
+                    task_type = task['type']
                     
                     if task:
+                        if task_type == 'folder':
+                            subtasks = self.sub_tasks(query, str(task_id))
+                            if subtasks:
+                                subtask_completed = False
+                                for subtask in subtasks:
+                                    subtask_id = subtask['id']
+                                    is_completed = subtask['is_completed']
+
+                                    if subtask and not is_completed:
+                                        claim = self.claim_subtasks(query, subtask_id)
+                                        if claim:
+                                            self.log(
+                                                f"{Fore.MAGENTA + Style.BRIGHT}[ Sub Task{Style.RESET_ALL}"
+                                                f"{Fore.WHITE + Style.BRIGHT} {subtask['title']} {Style.RESET_ALL}"
+                                                f"{Fore.GREEN + Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                                f"{Fore.MAGENTA + Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
+                                                f"{Fore.WHITE + Style.BRIGHT} {subtask['amount']} $FOOD {Style.RESET_ALL}"
+                                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                            )
+                                        else:
+                                            self.log(
+                                                f"{Fore.MAGENTA + Style.BRIGHT}[ Sub Task{Style.RESET_ALL}"
+                                                f"{Fore.WHITE + Style.BRIGHT} {subtask['title']} {Style.RESET_ALL}"
+                                                f"{Fore.RED + Style.BRIGHT} Isn't Completed{Style.RESET_ALL}"
+                                                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
+                                            )
+                                        time.sleep(1)
+
+                                    else:
+                                        subtask_completed = True
+
+                                if subtask_completed:
+                                    self.log(
+                                        f"{Fore.MAGENTA + Style.BRIGHT}[ Sub Task{Style.RESET_ALL}"
+                                        f"{Fore.GREEN + Style.BRIGHT} Is Completed {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                                    )
+
+                        
                         claim = self.claim_tasks(query, task_id)
                         if claim:
                             self.log(
